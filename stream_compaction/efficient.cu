@@ -51,7 +51,6 @@ namespace StreamCompaction {
                 kernDownSweep << <blocks, blockSize >> > (numThreads, stride, dev_data);
             }
         }
-
         /**
          * Performs prefix-sum (aka scan) on idata, storing the result into odata.
          */
