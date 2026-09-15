@@ -14,43 +14,41 @@ namespace StreamCompaction {
         }
 
         // up-sweep: each node adds its left child into its right child
-        __global__ void kernUpSweep(int n, int stride, int* data) {
-            int index = threadIdx.x + (blockIdx.x * blockDim.x);
-            if (index >= n) {
+        // threads are compacted, every launched thread does real work
+        __global__ void kernUpSweep(int numThreads, int stride, int* data) {
+            int tid = threadIdx.x + (blockIdx.x * blockDim.x);
+            if (tid >= numThreads) {
                 return;
             }
-            // only the nodes at this level of the tree do work
-            if (index % (stride * 2) == 0) {
-                data[index + stride * 2 - 1] += data[index + stride - 1];
-            }
+            int index = (tid + 1) * stride * 2 - 1;
+            data[index] += data[index - stride];
         }
 
         // down-sweep: left child gets the parent, right child gets parent + old left
-        __global__ void kernDownSweep(int n, int stride, int* data) {
-            int index = threadIdx.x + (blockIdx.x * blockDim.x);
-            if (index >= n) {
+        __global__ void kernDownSweep(int numThreads, int stride, int* data) {
+            int tid = threadIdx.x + (blockIdx.x * blockDim.x);
+            if (tid >= numThreads) {
                 return;
             }
-            if (index % (stride * 2) == 0) {
-                int left = data[index + stride - 1];
-                data[index + stride - 1] = data[index + stride * 2 - 1];
-                data[index + stride * 2 - 1] += left;
-            }
+            int index = (tid + 1) * stride * 2 - 1;
+            int left = data[index - stride];
+            data[index - stride] = data[index];
+            data[index] += left;
         }
 
-        // device-side scan with no timer and no host copies, so compact can reuse it
-        // dev_data must already be padded to paddedN and zero-filled past n
         void scanDevice(int paddedN, int* dev_data) {
-            dim3 fullBlocks((paddedN + blockSize - 1) / blockSize);
-
             for (int stride = 1; stride < paddedN; stride *= 2) {
-                kernUpSweep << <fullBlocks, blockSize >> > (paddedN, stride, dev_data);
+                int numThreads = paddedN / (stride * 2);
+                dim3 blocks((numThreads + blockSize - 1) / blockSize);
+                kernUpSweep << <blocks, blockSize >> > (numThreads, stride, dev_data);
             }
 
             cudaMemset(dev_data + paddedN - 1, 0, sizeof(int));
 
             for (int stride = paddedN / 2; stride >= 1; stride /= 2) {
-                kernDownSweep << <fullBlocks, blockSize >> > (paddedN, stride, dev_data);
+                int numThreads = paddedN / (stride * 2);
+                dim3 blocks((numThreads + blockSize - 1) / blockSize);
+                kernDownSweep << <blocks, blockSize >> > (numThreads, stride, dev_data);
             }
         }
 
