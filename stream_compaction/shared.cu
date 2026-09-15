@@ -7,7 +7,7 @@
 #define ELEMENTS_PER_BLOCK (blockSize * 2)
 
 #define LOG_NUM_BANKS 5
-#define CONFLICT_FREE_OFFSET(n) ((n) >> LOG_NUM_BANKS)
+#define CONFLICT_FREE_OFFSET(n) ((n) >> LOG_NUM_BANKS)  //#define CONFLICT_FREE_OFFSET(n) (0) 
 
 namespace StreamCompaction {
     namespace Shared {
