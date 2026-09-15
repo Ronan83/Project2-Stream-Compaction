@@ -7,17 +7,19 @@
  */
 
 #include <cstdio>
+#include <algorithm>
 #include <stream_compaction/cpu.h>
 #include <stream_compaction/naive.h>
 #include <stream_compaction/efficient.h>
 #include <stream_compaction/thrust.h>
+#include <stream_compaction/radix.h>
 #include "testing_helpers.hpp"
 
 const int SIZE = 1 << 20; // feel free to change the size of array
 const int NPOT = SIZE - 3; // Non-Power-Of-Two
-int *a = new int[SIZE];
-int *b = new int[SIZE];
-int *c = new int[SIZE];
+int* a = new int[SIZE];
+int* b = new int[SIZE];
+int* c = new int[SIZE];
 
 int main(int argc, char* argv[]) {
     // Scan tests
@@ -146,6 +148,40 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Efficient::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(count, c, true);
     printCmpLenResult(count, expectedNPOT, b, c);
+
+    printf("\n");
+    printf("*********************\n");
+    printf("** RADIX SORT TESTS**\n");
+    printf("*********************\n");
+
+    // Radix sort tests (extra credit)
+
+    genArray(SIZE - 1, a, 50);
+    a[SIZE - 1] = 0;
+    printArray(SIZE, a, true);
+
+    // use std::sort on b to get the expected result
+    zeroArray(SIZE, b);
+    std::copy(a, a + SIZE, b);
+    std::sort(b, b + SIZE);
+
+    zeroArray(SIZE, c);
+    printDesc("radix sort, power-of-two");
+    StreamCompaction::Radix::sort(SIZE, c, a);
+    printElapsedTime(StreamCompaction::Radix::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+    printArray(SIZE, c, true);
+    printCmpResult(SIZE, b, c);
+
+    zeroArray(SIZE, b);
+    std::copy(a, a + NPOT, b);
+    std::sort(b, b + NPOT);
+
+    zeroArray(SIZE, c);
+    printDesc("radix sort, non-power-of-two");
+    StreamCompaction::Radix::sort(NPOT, c, a);
+    printElapsedTime(StreamCompaction::Radix::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+    printArray(NPOT, c, true);
+    printCmpResult(NPOT, b, c);
 
     system("pause"); // stop Win32 console from closing on exit
     delete[] a;
