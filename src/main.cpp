@@ -13,6 +13,7 @@
 #include <stream_compaction/efficient.h>
 #include <stream_compaction/thrust.h>
 #include <stream_compaction/radix.h>
+#include <stream_compaction/shared.h>
 #include "testing_helpers.hpp"
 
 const int SIZE = 1 << 20; // feel free to change the size of array
@@ -96,6 +97,21 @@ int main(int argc, char* argv[]) {
     printElapsedTime(StreamCompaction::Thrust::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
     //printArray(NPOT, c, true);
     printCmpResult(NPOT, b, c);
+
+
+    zeroArray(SIZE, c);
+    printDesc("shared memory scan, power-of-two");
+    StreamCompaction::Shared::scan(SIZE, c, a);
+    printElapsedTime(StreamCompaction::Shared::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+    printCmpResult(SIZE, b, c);
+
+    zeroArray(SIZE, c);
+    printDesc("shared memory scan, non-power-of-two");
+    StreamCompaction::Shared::scan(NPOT, c, a);
+    printElapsedTime(StreamCompaction::Shared::timer().getGpuElapsedTimeForPreviousOperation(), "(CUDA Measured)");
+    printCmpResult(NPOT, b, c);
+
+
 
     printf("\n");
     printf("*****************************\n");

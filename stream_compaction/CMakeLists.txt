@@ -5,6 +5,7 @@ set(headers
     "efficient.h"
     "thrust.h"
     "radix.h"
+    "shared.h"
     )
 
 set(sources
@@ -14,6 +15,7 @@ set(sources
     "efficient.cu"
     "thrust.cu"
     "radix.cu"
+    "shared.cu"
     )
 
 list(SORT headers)
